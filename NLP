@@ -1,0 +1,416 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+import string
+
+
+# In[2]:
+
+
+from urllib import request
+
+
+# In[3]:
+
+
+page_address_ = r'https://insights.blackcoffer.com/rise-of-telemedicine-and-its-impact-on-livelihood-by-2040-3-2/'
+# surf page 
+html_page_connection_ = request.urlopen(page_address_)
+
+# read page 
+page_html_string_ = html_page_connection_.read()
+
+
+# In[4]:
+
+
+from bs4 import BeautifulSoup
+
+
+# In[5]:
+
+
+import requests
+
+
+# In[6]:
+
+
+url = "https://insights.blackcoffer.com/rise-of-telemedicine-and-its-impact-on-livelihood-by-2040-3-2/"
+req = requests.get(url)
+soup = BeautifulSoup(req.text, "html.parser")
+print("The title is :")
+print(soup.title)
+
+
+# In[7]:
+
+
+# string/text data fetcher 
+fetcher_ = BeautifulSoup(page_html_string_,'lxml')
+
+# fetch all paragraphs text 
+para_list_ = [raw_para.text for raw_para in fetcher_.find_all('p')]
+
+# see 
+para_list_
+
+
+# In[8]:
+
+
+del para_list_[0:16]
+
+
+# In[9]:
+
+
+para_list_
+
+
+# In[10]:
+
+
+for i in range(3):
+    para_list_.pop()
+
+
+# In[11]:
+
+
+para_list_
+
+
+# In[12]:
+
+
+#removing punctuations
+rmv_punctuations = str.maketrans('', '', string.punctuation + 
+                                 '—' +'’' + '“' + '”' + '–' + '\n' + '\t'+ '\xa0')
+preprocessed_text = list()
+for i in para_list_:
+    lowercase_sent = i.lower()
+    
+    preprocessed_text.append(lowercase_sent.translate(rmv_punctuations))
+preprocessed_text
+
+
+# In[13]:
+
+
+from nltk import sent_tokenize 
+from nltk import word_tokenize 
+
+# stenc for page raw texts 
+sent_ = []
+word_ = []
+for i in preprocessed_text:
+    word_.append(word_tokenize(i))
+
+
+# In[14]:
+
+
+print(word_)
+
+
+# In[15]:
+
+
+my_stpwrds = []
+with open("StopWords_Auditor.txt", "r") as f:
+    for i in f:
+        my_stpwrds.append(i)
+print(my_stpwrds)
+
+
+# In[16]:
+
+
+my_stopwords= []
+for i in my_stpwrds:
+    temp=i.replace('\n', '')  
+    my_stopwords.append(temp)
+print(my_stopwords)
+
+
+# In[17]:
+
+
+preprocessed_list = []
+for i in word_:
+    filtered_words = []
+    for j in i:
+#       if j not in stop_words:
+        if j not in my_stopwords:
+            filtered_words.append(j)
+    preprocessed_list.append(filtered_words)
+
+
+# In[18]:
+
+
+print(preprocessed_list)
+
+
+# In[19]:
+
+
+#stemming using porterstemmer
+from nltk.stem import PorterStemmer
+
+ps = PorterStemmer()
+stemmed_words_ = []
+
+for i in preprocessed_list:
+    filtered_sentence = []
+    for j in i:
+        filtered_sentence.append(ps.stem(j))
+    stemmed_words_.append(filtered_sentence)
+
+#see stemmed words
+print(stemmed_words_)
+
+
+# In[20]:
+
+
+#lemmatization
+from nltk.stem import WordNetLemmatizer
+
+lemmatizer = WordNetLemmatizer()
+lemmatized_words = []
+for i in preprocessed_list :
+    filtered_sentence = []
+    for j in i:    
+        filtered_sentence.append(lemmatizer.lemmatize(j))
+    lemmatized_words.append(filtered_sentence)
+
+#see lemmatized words
+lemmatized_words
+
+
+# In[21]:
+
+
+total_word_count = 0;
+print("TOTAL NUMBER OF SENTENCES : ", len(lemmatized_words))
+for i in lemmatized_words:
+    #print(len(i))
+    total_word_count = total_word_count + len(i)
+print("TOTAL WORD LENGTH : ", total_word_count)
+
+#average number of words = Sum of the total number of characters in each word/Total number of words
+avg_word_length = 0 
+for i in lemmatized_words:
+    for j in i:
+        avg_word_length = avg_word_length + len(j)
+print("AVERAGE WORD LENGTH : ", avg_word_length / total_word_count)
+
+#Average Number of Words Per Sentence = the total number of words / the total number of sentences
+print("AVERAGE NUMBER OF WORDS PER SENTENCE :", total_word_count/len(lemmatized_words))
+
+
+# In[22]:
+
+
+count = 0
+#temp_count = 0;
+for i in lemmatized_words:
+    for j in i:
+        if (j[-2:] == "es") or (j[-2:] == "ed"):
+            continue
+            #temp_count = temp_count + 1
+        else:
+            #print(re.findall(r'[aeiou]',j))
+            count = count+1
+print("SYLLABLE COUNT PER WORD (not counting the words ending with 'es' or 'ed') : ", count)  
+#print(temp_count)
+
+
+# In[23]:
+
+
+import re
+new_list = []
+for i in lemmatized_words:
+    for j in i:
+        new_list.append(re.findall(r'[aeiou]',j))
+
+#new_list
+
+
+# In[24]:
+
+
+#Complex word count
+#words containing more than 2 syllable
+
+complex_count = 0
+for i in new_list:
+    if len(i) > 2:
+        complex_count = complex_count + 1
+
+print("COMPLEX WORD COUNT ( more than 2 syllable ) :" , complex_count)
+
+
+# In[25]:
+
+
+count = 0
+pronounRegex = re.compile(r'\b(I|we|my|ours|(?-i:us))\b',re.I)
+for i in para_list_:
+    pronouns = pronounRegex.findall(i)
+    if len(pronouns) != 0:
+        print("PERSONAL PRONOUNS ( of each sentence ): ", pronouns , " => ", len(pronouns))
+        count = count + len(pronouns)
+
+print("TOTAL COUNT OF PERSONAL PRONOUNS : ", count)
+
+
+# In[26]:
+
+
+#Average sentence length
+#Average Sentence Length = the number of words / the number of sentences
+avg_sent_len = total_word_count/len(lemmatized_words)
+print("AVERAGE SENTENCE LENGTH : ", avg_sent_len )
+
+
+# In[27]:
+
+
+#Percentage of Complex words = the number of complex words / the number of words 
+percentage_complex_word = (complex_count/total_word_count)
+print("PERCENTAGE OF COMPLEX WORDS : ", percentage_complex_word, "%")
+
+
+# In[28]:
+
+
+#Fog Index = 0.4 * (Average Sentence Length + Percentage of Complex words)
+print("FOG INDEX : ", 0.4 * (avg_sent_len + percentage_complex_word))
+
+
+# In[29]:
+
+
+pos_list = []
+with open("positive-words.txt", "r") as f:
+    for i in f:
+        pos_list.append(i)
+#pos_list
+
+
+# In[30]:
+
+
+positive_list = []
+for i in pos_list:
+    temp=i.replace('\n', '')  
+    positive_list.append(temp)
+#print(positive_list)
+
+
+# In[31]:
+
+
+neg_list = []
+with open("negative-words.txt", "r") as f:
+    for i in f:
+        neg_list.append(i)
+#neg_list
+
+
+# In[32]:
+
+
+negative_list = []
+for i in neg_list:
+    temp=i.replace('\n', '')  
+    negative_list.append(temp)
+#print(negative_list)
+
+
+# In[33]:
+
+
+#print("TOTAL WORDS IN POSITIVE LIST : ", len(positive_list))
+
+
+# In[34]:
+
+
+updated_positive_list = []
+for i in positive_list:
+    if i not in my_stopwords:
+        updated_positive_list.append(i)
+#len(updated_positive_list)
+
+
+# In[35]:
+
+
+#print("TOTAL WORDS IN NEGATIVE LIST : ", len(negative_list))
+
+
+# In[36]:
+
+
+updated_negative_list = []
+for i in negative_list:
+    if i not in my_stopwords:
+        updated_negative_list.append(i)
+#len(updated_negative_list)
+
+
+# In[37]:
+
+
+master_dict = dict()
+master_dict['Positive'] = updated_positive_list
+master_dict["Negative"] = updated_negative_list
+#master_dict
+
+
+# In[38]:
+
+
+positive_score = 0
+for i in lemmatized_words:
+    for j in i:
+        if j in master_dict['Positive']:
+            #print(j)
+            positive_score = positive_score + 1
+positive_score
+
+
+# In[39]:
+
+
+negative_score = 0
+for i in lemmatized_words:
+    for j in i:
+        if j in master_dict['Negative']:
+            #print(j)
+            negative_score = (negative_score - 1)
+negative_score = (-1)*negative_score
+negative_score
+
+
+# In[40]:
+
+
+#Polarity Score = (Positive Score – Negative Score)/ ((Positive Score + Negative Score) + 0.000001)
+print("POLARITY SCORE : ", (positive_score - negative_score)/((positive_score + negative_score) + 0.000001))
+
+
+# In[41]:
+
+
+#Subjectivity Score = (Positive Score + Negative Score)/ ((Total Words after cleaning) + 0.000001)
+print("SUBJECTIVITY SCORE : ", ((positive_score + negative_score)/(total_word_count) + 0.000001))
+
